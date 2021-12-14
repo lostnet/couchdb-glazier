@@ -409,7 +409,7 @@ jobs:
             couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
 
       - name: Setup tmate session
-        if: true
+        if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
@@ -607,7 +607,7 @@ jobs:
             couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
 
       - name: Setup tmate session
-        if: false
+        if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
