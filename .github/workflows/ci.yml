@@ -268,7 +268,7 @@ jobs:
             otp-24.tar.xz
             Precompiled.zip
             foundationdb-$env:FDB_VERSION-x64.msi
-          key: windeps${{matrix.deps}}-${{env.ELIXIR_VERSION}}
+          key: allwindeps${{matrix.deps}}-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
 
       - name: download artifacts
         if: steps.getdeps.outputs.cache-hit != 'true'
@@ -277,7 +277,7 @@ jobs:
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/otp-24.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Invoke-WebRequest -Uri https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
+          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
 
       - name: Install FoundationDB (Windows)
         shell: pwsh
@@ -474,14 +474,14 @@ jobs:
           path: |
             Precompiled.zip
             foundationdb-$env:FDB_VERSION-x64.msi
-          key: win${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
+          key: winotherbins${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
 
       - name: download Elixir
         if: steps.getelixir.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Invoke-WebRequest -Uri https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi -OutFile foundationdb-$env:FDB_VERSION-x64.msi
+          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
 
       - name: Install FoundationDB (Windows)
         shell: pwsh
