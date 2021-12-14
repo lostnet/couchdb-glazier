@@ -393,7 +393,6 @@ jobs:
 
       - name: Archive release
         uses: actions/upload-artifact@v2
-        if: !startsWith(github.ref, 'refs/tags/')
         with:
           path: |
             couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz
