@@ -1,0 +1,679 @@
+name: CI Glazier
+
+on: [workflow_dispatch,push]
+
+env:
+  WXWIDGETS_VERSION: 3.1.4
+  RUST_VERSION: 1.56.1
+  ELIXIR_VERSION: 1.12.3
+  FDB_VERSION: 6.2.30
+  MOZ_MAKE_FLAGS: "-j2"
+  ERL_PATH: "C:\\relax\\erl\\bin"
+  MSVC_PATH: "C:\\relax\\msvc"
+  ADD_PATH: "C:\\mozilla-build\\bin;C:\\mozilla-build\\msys\\bin;C:\\mozilla-build\\msys\\local\\bin;C:\\vcpkg\\installed\\x64-windows\\bin;"
+  AUTOCONF: "C:\\mozilla-build\\msys\\local\\bin\\autoconf-2.13"
+  NATIVE_WIN32_PYTHON: "C:\\mozilla-build\\python\\python2.7.exe"
+  LIB: "C:\\vcpkg\\installed\\x64-windows\\lib;C:\\vcpkg\\installed\\x64-windows\\bin"
+  VCPKG_BIN: "C:\\vcpkg\\installed\\x64-windows\\bin"
+  INCLUDE: "C:\\vcpkg\\installed\\x64-windows\\include"
+  LIBPATH: "C:\\vcpkg\\installed\\x64-windows\\lib"
+  LDFLAGS: "/LIBPATH:C:\\vcpkg\\installed\\x64-windows\\lib /LIBPATH:C:\\vcpkg\\installed\\x64-windows\\bin icuin.lib icudt.lib icuuc.lib"
+  PKG_CONFIG_PATH: "C:\\vcpkg\\installed\\x64-windows\\lib\\pkgconfig"
+  M4: m4
+  AWK: awk
+  
+jobs:
+  
+  erlang:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        otp-version: ['24']
+    defaults:
+      run:
+        shell: wsl-bash {0}
+    steps:
+      - uses: Vampire/setup-wsl@v1
+        with:
+          distribution: Ubuntu-20.04
+          additional-packages:
+            g++-mingw-w64
+            gcc-mingw-w64
+            make
+            autoconf
+            unzip
+          
+      - name: Install openssl
+        shell: cmd
+        run: |
+          choco install openssl
+          move "c:\\Program Files\\OpenSSL-Win64" "c:\\OpenSSL-Win64"
+          
+      - name: Cache wxWidgets
+        uses: actions/cache@v2
+        with:
+          path: wxWidgets
+          key: wxWidgets-${{ env.WXWIDGETS_VERSION }}-${{ runner.os }}
+
+      # actions/cache on Windows sometimes does not set cache-hit even though there was one. Setting it manually.
+      - name: Set wxWidgets cache
+        id: wxwidgets-cache
+        run: |
+          if [ -d wxWidgets ]; then
+            echo "::set-output name=cache-hit::true"
+          else
+            echo "::set-output name=cache-hit::false"
+          fi
+      - name: Download wxWidgets
+        if: steps.wxwidgets-cache.outputs.cache-hit != 'true'
+        run: |
+          wget https://github.com/wxWidgets/wxWidgets/releases/download/v${{ env.WXWIDGETS_VERSION }}/wxWidgets-${{ env.WXWIDGETS_VERSION }}.zip
+          unzip wxWidgets-${{ env.WXWIDGETS_VERSION }}.zip -d wxWidgets
+          sed -i -r -e 's/wxUSE_POSTSCRIPT +0/wxUSE_POSTSCRIPT 1/' wxWidgets/include/wx/msw/setup.h
+          sed -i -r -e 's/wxUSE_WEBVIEW_EDGE +0/wxUSE_WEBVIEW_EDGE 1/' wxWidgets/include/wx/msw/setup.h
+          
+      - name: Install WebView2
+        if: steps.wxwidgets-cache.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          cd wxWidgets\\3rdparty
+          nuget install Microsoft.Web.WebView2 -Version 1.0.705.50 -Source https://api.nuget.org/v3/index.json
+          rename Microsoft.Web.WebView2.1.0.705.50 webview2
+      - name: Build wxWidgets
+        if: steps.wxidgets-cache.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          cd wxWidgets\\build\\msw
+          call "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\Auxiliary\\Build\\vcvars64.bat"
+          nmake TARGET_CPU=amd64 BUILD=release SHARED=0 DIR_SUFFIX_CPU= -f makefile.vc
+          
+      - name: Download source archive
+        run: |
+          git clone https://github.com/erlang/otp
+          cd otp
+          git checkout maint-${{ matrix.otp-version }}
+          
+      - name: setup wxwidgets
+        run: |
+          mkdir -p /mnt/c/opt/local64/pgm/
+          cp -R wxWidgets /mnt/c/opt/local64/pgm/wxWidgets-${{ env.WXWIDGETS_VERSION }}
+
+      - name: configure and compile erlang
+        run: |
+          cd otp
+          export ERL_TOP=`pwd`
+          export MAKEFLAGS=-j4
+          export ERLC_USE_SERVER=true
+          eval `./otp_build env_win32 x64`
+          ./otp_build configure
+          if cat erts/CONF_INFO || cat lib/*/CONF_INFO || cat lib/*/SKIP || cat lib/SKIP-APPLICATIONS; then exit 1; fi
+          ./otp_build boot -a
+          ./otp_build release -a
+          cp /mnt/c/opt/local64/pgm/wxWidgets-${{ env.WXWIDGETS_VERSION }}/3rdparty/webview2/runtimes/win-x64/native/WebView2Loader.dll $ERL_TOP/release/win32/erts-*/bin/
+          ./otp_build installer_win32
+
+      - name: check and bundle erlang
+        run: |
+          cd otp
+          ./release/win32/otp_win64_*.exe /S
+          cd release/win32
+          tar -cvJf ../../../otp-${{ matrix.otp-version }}.tar.xz otp_win64_*.exe
+          
+      - name: Artifact of otp
+        uses: actions/upload-artifact@v2
+        with:
+          name: otp-${{ matrix.otp-version }}.tar.xz
+          path: otp-${{ matrix.otp-version }}.tar.xz
+
+      - name: Release of otp
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            otp-${{ matrix.otp-version }}.tar.xz
+
+  mozjs:
+    strategy:
+      matrix:
+        mozjs-version: ['78', '91']
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: fix rustc version
+      shell: powershell
+      run: |
+        rustup toolchain install ${{env.RUST_VERSION}}
+        rustup default ${{env.RUST_VERSION}}
+
+    - name: Install deps on windows
+      shell: powershell
+      run: |
+        Start-BitsTransfer -Source https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe -Destination ./MozillaBuildSetup.exe
+        .\MozillaBuildSetup.exe /S | Out-Null
+
+    - name: moz checkout
+      uses: actions/checkout@v2
+      with:
+        repository: mozilla/gecko-dev
+        ref: esr${{ matrix.mozjs-version }}
+        path: gecko-dev
+
+    - name: choco install
+      run: choco install pkgconfiglite
+      
+    - name: Install vcpkg dependencies
+      shell: pwsh
+      run: |
+        Install-Module VSSetup -Scope CurrentUser -Force
+        vcpkg.exe install icu
+        vcpkg.exe integrate install
+      
+    - name: builddir for mozjs
+      working-directory: gecko-dev\js\src
+      run: mkdir build_OPT.OBJ
+
+    - name: conf mozjs
+      working-directory: gecko-dev\js\src\build_OPT.OBJ
+      shell: python
+      env:
+        SRCDIR: ${{ github.workspace}}\gecko-dev\js\src
+        OLD_CONFIGURE: ${{ github.workspace }}\gecko-dev\js\src\old-configure
+        TOPSRCDIR: ${{ github.workspace }}\gecko-dev
+      run: |
+        import subprocess
+        import os
+        env = os.environ.copy()
+        env['PATH'] = env['ADD_PATH']+env['PATH']
+        subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
+
+    - name: make
+      working-directory: gecko-dev\js\src\build_OPT.OBJ
+      shell: powershell
+      run: |
+        $env:Path = $env:ADD_PATH + $env:Path
+        C:\mozilla-build\bin\mozmake.exe
+
+    - name: copy moz pieces
+      shell: powershell
+      run: |
+        copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.pdb C:\vcpkg\installed\x64-windows\bin
+        copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.lib C:\vcpkg\installed\x64-windows\bin
+        copy gecko-dev\js\src\build_OPT.OBJ\dist\bin\*.dll C:\vcpkg\installed\x64-windows\bin
+        copy gecko-dev\js\src\build_OPT.OBJ\dist\include\* C:\vcpkg\installed\x64-windows\include -Recurse -ErrorAction SilentlyContinue
+        
+    - name: package
+      shell: bash
+      run: |        
+        tar cvJf vcpkgmozjs${{matrix.mozjs-version}}.tar.xz /c/vcpkg/installed/x64-windows
+        
+    - name: Archive mozjs
+      uses: actions/upload-artifact@v2
+      with:
+        name: vcpkgmozjs${{matrix.mozjs-version}}.tar.xz
+        path: vcpkgmozjs${{matrix.mozjs-version}}.tar.xz
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+            vcpkgmozjs${{matrix.mozjs-version}}.tar.xz
+
+
+  coucholddeps:
+    runs-on: windows-latest
+    env:
+      JB: '-old-deps'
+    strategy:
+      matrix:
+        couch-version: ['3', '4']
+        deps: ['msdeps11']
+    defaults:
+      run:
+        shell: wsl-bash {0}
+    steps:
+      - name: fix rustc version
+        shell: powershell
+        run: |
+          rustup toolchain install ${{env.RUST_VERSION}}
+          rustup default ${{env.RUST_VERSION}}
+          
+      - uses: Vampire/setup-wsl@v1
+        with:
+          distribution: Ubuntu-20.04
+          additional-packages:
+            unzip
+
+      - name: python for docs
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade sphinx docutils pygments nose hypothesis sphinx_rtd_theme
+
+      - name: git-no-windows-crlf
+        shell: bash
+        run: |
+          git config --system core.autocrlf false
+
+      - name: checkout couchdb-glazier
+        run: |
+          git clone https://github.com/apache/couchdb-glazier
+          cd couchdb-glazier
+          git checkout main
+          sed -i -e 's@2017.*14.16.27012@2019\\Enterprise\\VC\\Redist\\MSVC\\14.16.27012@' installer/couchdb.wxs.in
+
+      - name: Cache of deps
+        id: getdeps
+        uses: actions/cache@v2
+        with:
+          path: |
+            vcpkgmozjs91.tar.xz
+            otp-24.tar.xz
+            Precompiled.zip
+            foundationdb-${{env.FDB_VERSION}}-x64.msi
+          key: allwindeps-${{matrix.deps}}-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
+
+      - name: download artifacts
+        if: steps.getdeps.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/otp-24.tar.xz
+          Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
+          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
+
+      - name: Install FoundationDB (Windows)
+        shell: pwsh
+        if: ${{ matrix.couch-version == '4' }}
+        run: |
+          Set-PSDebug -Trace 1
+          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
+          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: setup icu and mozjs again
+        run: |
+          cat vcpkgmozjs91.tar.xz | (cd /mnt || cd /; tar xvJf -)
+
+      - name: choco install packaging
+        shell: cmd
+        run: choco install nasm wixtoolset
+
+      - name: unarchive erlang
+        run: |
+          tar xvJf otp-24.tar.xz
+
+      - name: setup erlang
+        run: |
+          ./otp_win64_*.exe /S
+
+      - name: setup elixir
+        run: |
+          cp Precompiled.zip /mnt/c/Program*Files/erl*/
+          cd /mnt/c/Program*Files/erl*/
+          unzip Precompiled.zip
+          
+
+      - name: setup relax directory
+        run: |
+          cd /mnt || cd /
+          cd c
+          mkdir -p relax
+          cd relax
+          ln -s ../Program*Files/erl*/ erl
+          ln -s ../vcpkg vcpkg
+          ln -s ../Program*Files/llvm llvm
+
+
+      - name: checkout couchdb3
+        if: ${{ matrix.couch-version == '3' }}
+        run: |
+          git clone https://github.com/apache/couchdb
+          cd couchdb
+          git checkout "feat/support-sm91-3.x-from-lostnet"
+
+      - name: checkout couchdb4
+        if: ${{ matrix.couch-version == '4' }}
+        run: |
+          git clone https://github.com/lostnet/couchdb
+          cd couchdb
+          git checkout couch4win
+          sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
+
+      - name: patch couchdb rebar for moz91
+        run: |
+          sed -i -e 's@SMVsn == "60"@SMVsn == "91"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"mozjs-60.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"/DXP_WIN"@"/std:c++17 /DXP_WIN"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"icuin.lib icudt.lib icuuc.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin /LIBPATH:C:/relax/vcpkg/installed/x64-windows/lib icuin.lib icudt.lib icuuc.lib"@' couchdb/src/couch/rebar.config.script
+
+      - name: Set up Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: build couchdb
+        shell: powershell
+        run: |
+          cd couchdb
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
+          echo $env:Path
+          . ./configure.ps1 -SpiderMonkeyVersion 91
+          make.exe -f Makefile.win
+
+      - name: raw bundle of couchdb
+        if: false
+        run: |
+          tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
+
+      - name: check couchdb
+        timeout-minutes: 35
+        continue-on-error: true
+        shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
+        run: |
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          make -d -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: check couchdb
+        timeout-minutes: 25
+        shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
+        run: |
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          make -d -f Makefile.win python-black | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: check couchdb
+        timeout-minutes: 25
+        shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
+        run: |
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          make -d -f Makefile.win erlfmt-check | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: check couchdb
+        timeout-minutes: 25
+        continue-on-error: true
+        shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
+        run: |
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          make -d -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: check couchdb
+        timeout-minutes: 25
+        continue-on-error: true
+        shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
+        run: |
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          make -d -f Makefile.win exunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: check couchdb
+        timeout-minutes: 25
+        continue-on-error: true
+        shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
+        run: |
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          make -d -f Makefile.win mango-test | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: build couchdb release
+        shell: powershell
+        run: |
+          cd couchdb
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
+          echo $env:Path
+          $env:CC="clang-cl.exe"
+          echo $env:CC
+          make.exe -f Makefile.win release
+
+      - name: bundle
+        shell: powershell
+        run: |
+          $env:VCPKG_BIN="c:\relax\vcpkg\installed\x64-windows\bin"
+          $env:Path="C:\Program Files (x86)\WiX Toolset v3.11\bin;$env:Path"
+          ./couchdb-glazier/bin/build_installer
+
+      - name: bland name
+        run: mv apache-couchdb*msi apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+
+      - name: Archive release
+        uses: actions/upload-artifact@v2
+        with:
+          path: |
+            couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz
+            apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+            couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz
+            apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+            couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
+  couchdb:
+    needs: [ mozjs, erlang ]
+    runs-on: windows-latest
+    env:
+      JB: ''
+    strategy:
+      matrix:
+        couch-version: ['3', '4']
+    defaults:
+      run:
+        shell: wsl-bash {0}
+    steps:
+
+      - name: fix rustc version
+        shell: powershell
+        run: |
+          rustup toolchain install ${{env.RUST_VERSION}}
+          rustup default ${{env.RUST_VERSION}}
+
+      - uses: Vampire/setup-wsl@v1
+        with:
+          distribution: Ubuntu-20.04
+          additional-packages:
+            unzip
+
+      - name: python for docs
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade sphinx docutils pygments nose hypothesis sphinx_rtd_theme
+
+      - name: checkout couchdb-glazier
+        run: |
+          git clone https://github.com/apache/couchdb-glazier
+          cd couchdb-glazier
+          git checkout main
+          sed -i -e 's@2017.*14.16.27012@2019\\Enterprise\\VC\\Redist\\MSVC\\14.16.27012@' installer/couchdb.wxs.in
+
+          
+      - name: download artifacts
+        id: mozjs
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: vcpkgmozjs91.tar.xz
+
+      - name: download artifacts
+        continue-on-error: true
+        id: otp
+        uses: actions/download-artifact@v2
+        with:
+          name: otp-24.tar.xz
+
+      - name: Cache of deps
+        id: getelixir
+        uses: actions/cache@v2
+        with:
+          path: |
+            Precompiled.zip
+            foundationdb-${{env.FDB_VERSION}}-x64.msi
+          key: winotherbins-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
+
+      - name: download Elixir
+        if: steps.getelixir.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
+          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
+
+      - name: Install FoundationDB (Windows)
+        shell: pwsh
+        if: ${{ matrix.couch-version == '4' }}
+        run: |
+          Set-PSDebug -Trace 1
+          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
+          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: setup icu and mozjs again
+        run: |
+          cat vcpkgmozjs91.tar.xz | (cd /mnt || cd /; tar xvJf -)
+
+      - name: choco install packaging
+        shell: cmd
+        run: choco install nasm wixtoolset
+
+      - name: unarchive erlang
+        run: |
+          tar xvJf otp-24.tar.xz
+
+      - name: setup erlang
+        run: |
+          ./otp_win64_*.exe /S
+
+      - name: setup elixir
+        run: |
+          cp Precompiled.zip /mnt/c/Program*Files/erl*/
+          cd /mnt/c/Program*Files/erl*/
+          unzip Precompiled.zip
+          
+
+      - name: setup relax directory
+        run: |
+          cd /mnt || cd /
+          cd c
+          mkdir -p relax
+          cd relax
+          ln -s ../Program*Files/erl*/ erl
+          ln -s ../vcpkg vcpkg
+          ln -s ../Program*Files/llvm llvm
+
+      - name: checkout couchdb3
+        if: ${{ matrix.couch-version == '3' }}
+        run: |
+          git clone https://github.com/apache/couchdb
+          cd couchdb
+          git checkout "feat/support-sm91-3.x-from-lostnet"
+
+      - name: checkout couchdb4
+        if: ${{ matrix.couch-version == '4' }}
+        run: |
+          git clone https://github.com/apache/couchdb
+          cd couchdb
+          git checkout main
+          sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
+          sed -i -e 's@1.0.5-1@1.0.9-1@' rebar.config.script
+          sed -i -e 's@{tag, "v1.2.2"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' src/ebtree/rebar.config
+
+      - name: patch couchdb rebar for moz91
+        run: |
+          sed -i -e 's@SMVsn == "60"@SMVsn == "91"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"mozjs-60.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"/DXP_WIN"@"/std:c++17 /DXP_WIN"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"icuin.lib icudt.lib icuuc.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin /LIBPATH:C:/relax/vcpkg/installed/x64-windows/lib icuin.lib icudt.lib icuuc.lib"@' couchdb/src/couch/rebar.config.script
+
+      - name: Set up Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: build couchdb
+        shell: powershell
+        run: |
+          cd couchdb
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
+          echo $env:Path
+          . ./configure.ps1 -SpiderMonkeyVersion 91
+          make.exe -f Makefile.win
+
+      - name: raw bundle of couchdb
+        run: |
+          tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
+
+      - name: check couchdb
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: powershell
+        run: |
+          cd couchdb
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          $env:CC="clang-cl.exe"
+          make -d -f Makefile.win eunit elixir-suite exunit mango-test | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: build couchdb release
+        shell: powershell
+        run: |
+          cd couchdb
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
+          echo $env:Path
+          $env:CC="clang-cl.exe"
+          echo $env:CC
+          make.exe -f Makefile.win release
+
+      - name: bundle
+        shell: powershell
+        run: |
+          $env:VCPKG_BIN="c:\relax\vcpkg\installed\x64-windows\bin"
+          $env:Path="C:\Program Files (x86)\WiX Toolset v3.11\bin;$env:Path"
+          ./couchdb-glazier/bin/build_installer
+
+      - name: bland name
+        run: |
+          mv apache-couchdb*msi apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz
+            apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+            couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
