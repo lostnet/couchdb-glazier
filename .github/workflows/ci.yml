@@ -389,14 +389,13 @@ jobs:
           ./couchdb-glazier/bin/build_installer
 
       - name: bland name
-        run: |
-          mv apache-couchdb*msi apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+        run: mv apache-couchdb*msi apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
 
       - name: Archive release
         uses: actions/upload-artifact@v2
         if: !startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
+          path: |
             couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz
             apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
             couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
