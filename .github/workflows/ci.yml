@@ -331,12 +331,10 @@ jobs:
       - name: checkout couchdb4
         if: ${{ matrix.couch-version == '4' }}
         run: |
-          git clone https://github.com/apache/couchdb
+          git clone https://github.com/lostnet/couchdb
           cd couchdb
-          git checkout main
+          git checkout couch4win
           sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
-          sed -i -e 's@1.0.5-1@1.0.9-1@' rebar.config.script
-          sed -i -e 's@{tag, "v1.2.2"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' src/ebtree/rebar.config
 
       - name: patch couchdb rebar for moz91
         run: |
@@ -371,7 +369,7 @@ jobs:
           cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           $env:CC="clang-cl.exe"
-          make -d -f Makefile.win eunit elixir-suite exunit mango-test | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -d -f Makefile.win check | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: build couchdb release
         shell: powershell
@@ -394,6 +392,15 @@ jobs:
         run: |
           mv apache-couchdb*msi apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
 
+      - name: Archive release
+        uses: actions/upload-artifact@v2
+        if: ! startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz
+            apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
+            couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
+
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -404,7 +411,7 @@ jobs:
             couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
 
       - name: Setup tmate session
-        if: false
+        if: true
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
