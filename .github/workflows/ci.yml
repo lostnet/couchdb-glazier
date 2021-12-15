@@ -253,8 +253,9 @@ jobs:
           pip install --upgrade sphinx docutils pygments nose hypothesis sphinx_rtd_theme
 
       - name: git-no-windows-crlf
+        shell: bash
         run: |
-          git config --global core.autocrlf false
+          git config --system core.autocrlf false
 
       - name: checkout couchdb-glazier
         run: |
