@@ -369,6 +369,15 @@ jobs:
           cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           $env:CC="clang-cl.exe"
+          make -d -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+
+      - name: check couchdb
+        timeout-minutes: 25
+        shell: powershell
+        run: |
+          cd couchdb
+          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          $env:CC="clang-cl.exe"
           make -d -f Makefile.win python-black | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
@@ -389,16 +398,6 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           $env:CC="clang-cl.exe"
           make -d -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
-
-      - name: check couchdb
-        timeout-minutes: 25
-        continue-on-error: true
-        shell: powershell
-        run: |
-          cd couchdb
-          $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
-          make -d -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
