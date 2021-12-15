@@ -358,6 +358,7 @@ jobs:
           make.exe -f Makefile.win
 
       - name: raw bundle of couchdb
+        if: false
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
