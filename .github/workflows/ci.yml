@@ -382,6 +382,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         run: |
           cd couchdb
@@ -391,6 +392,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         run: |
           cd couchdb
@@ -400,6 +402,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         run: |
           cd couchdb
@@ -409,6 +412,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         run: |
           cd couchdb
