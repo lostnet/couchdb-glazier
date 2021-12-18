@@ -378,7 +378,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
@@ -412,7 +412,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
