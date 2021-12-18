@@ -5,7 +5,7 @@ on: [workflow_dispatch,push]
 env:
   WXWIDGETS_VERSION: 3.1.4
   RUST_VERSION: 1.56.1
-  ELIXIR_VERSION: 1.9.4
+  ELIXIR_VERSION: 1.12.3
   FDB_VERSION: 6.2.30
   MOZ_MAKE_FLAGS: "-j2"
   ERL_PATH: "C:\\relax\\erl\\bin"
@@ -369,60 +369,73 @@ jobs:
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
       - name: check couchdb
-        timeout-minutes: 25
+        timeout-minutes: 35
+        continue-on-error: true
         shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
         run: |
-          cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
           make -d -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
         shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
         run: |
-          cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
           make -d -f Makefile.win python-black | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
         shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
         run: |
-          cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
           make -d -f Makefile.win erlfmt-check | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
         run: |
-          cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
           make -d -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
         run: |
-          cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
           make -d -f Makefile.win exunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
+        working-directory: couchdb
+        env:
+          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
+          CC: "clang-cl.exe"
         run: |
-          cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          $env:CC="clang-cl.exe"
           make -d -f Makefile.win mango-test | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: build couchdb release
