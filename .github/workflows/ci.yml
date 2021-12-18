@@ -369,8 +369,8 @@ jobs:
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
       - name: check couchdb
-        timeout-minutes: 35
-        continue-on-error: true
+        timeout-minutes: 5
+        continue-on-error: false
         shell: powershell
         working-directory: couchdb
         env:
@@ -378,7 +378,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          gmake -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
