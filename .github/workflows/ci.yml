@@ -594,7 +594,7 @@ jobs:
       - name: checkout couchdb3
         if: ${{ matrix.couch-version == '3' }}
         run: |
-          git clone https://github.com/apache/couchdb
+          git clone https://github.com/lostnet/couchdb
           cd couchdb
           git checkout "feat/support-sm91-3.x-from-lostnet"
 
