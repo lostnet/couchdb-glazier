@@ -186,7 +186,7 @@ jobs:
         import os
         env = os.environ.copy()
         env['PATH'] = env['ADD_PATH']+env['PATH']
-        subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
+        subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
 
     - name: make
       working-directory: gecko-dev\js\src\build_OPT.OBJ
@@ -229,7 +229,7 @@ jobs:
     strategy:
       matrix:
         couch-version: ['3', '4']
-        deps: ['msdeps11']
+        deps: ['msdeps1']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -279,8 +279,8 @@ jobs:
         if: steps.getdeps.outputs.cache-hit != 'true'
         shell: powershell
         run: |
-          Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
-          Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/otp-24.tar.xz
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-24.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
           Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
 
