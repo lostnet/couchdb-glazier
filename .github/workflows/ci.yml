@@ -282,7 +282,7 @@ jobs:
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-24.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
+          #          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
 
       - name: Install FoundationDB (Windows)
         shell: pwsh
