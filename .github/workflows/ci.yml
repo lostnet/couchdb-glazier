@@ -364,13 +364,13 @@ jobs:
           make.exe -f Makefile.win
 
       - name: raw bundle of couchdb
-        if: false
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
       - name: check couchdb
         timeout-minutes: 5
-        continue-on-error: false
+        continue-on-error: true
         shell: powershell
         working-directory: couchdb
         env:
@@ -382,6 +382,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         working-directory: couchdb
         env:
@@ -393,6 +394,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         working-directory: couchdb
         env:
