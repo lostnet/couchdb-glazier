@@ -370,7 +370,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 5
-        continue-on-error: true
+        continue-on-error: false
         shell: powershell
         working-directory: couchdb
         env:
