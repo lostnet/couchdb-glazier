@@ -13,7 +13,7 @@ env:
   ADD_PATH: "C:\\mozilla-build\\bin;C:\\mozilla-build\\msys\\bin;C:\\mozilla-build\\msys\\local\\bin;C:\\vcpkg\\installed\\x64-windows\\bin;"
   AUTOCONF: "C:\\mozilla-build\\msys\\local\\bin\\autoconf-2.13"
   NATIVE_WIN32_PYTHON: "C:\\mozilla-build\\python\\python2.7.exe"
-  LIB: "C:\\vcpkg\\installed\\x64-windows\\lib;C:\\vcpkg\\installed\\x64-windows\\bin"
+  LIB: "C:\\vcpkg\\installed\\x64-windows\\lib"
   VCPKG_BIN: "C:\\vcpkg\\installed\\x64-windows\\bin"
   INCLUDE: "C:\\vcpkg\\installed\\x64-windows\\include"
   LIBPATH: "C:\\vcpkg\\installed\\x64-windows\\lib"
@@ -358,16 +358,17 @@ jobs:
         run: |
           cd couchdb
           $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
-          echo $env:Path
+          echo $ENV:PATH
+          echo $ENV:LIB
           . ./configure.ps1 -SpiderMonkeyVersion 91
-          make.exe -f Makefile.win
+          gmake.exe -f Makefile.win
 
       - name: raw bundle of couchdb
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
-      - name: check couchdb
+      - name: check-elixir couchdb
         timeout-minutes: 15
         continue-on-error: false
         shell: powershell
@@ -379,7 +380,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           gmake -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check-python-black couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -391,7 +392,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -d -f Makefile.win python-black | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check-erlfmt couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -403,7 +404,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -d -f Makefile.win erlfmt-check | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check eunit couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -415,7 +416,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check exunit couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -427,7 +428,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -d -f Makefile.win exunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check mango couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -447,6 +448,8 @@ jobs:
           echo $env:Path
           $env:CC="clang-cl.exe"
           echo $env:CC
+          $ENV:LIB=$ENV:LIB
+          echo $env:LIB
           make.exe -f Makefile.win release
 
       - name: bundle
@@ -627,15 +630,16 @@ jobs:
         run: |
           cd couchdb
           $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
-          echo $env:Path
+          echo $ENV:PATH
+          echo $ENV:LIB
           . ./configure.ps1 -SpiderMonkeyVersion 91
-          make.exe -f Makefile.win
+          gmake.exe -f Makefile.win
 
       - name: raw bundle of couchdb
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
-      - name: check couchdb
+      - name: check eunit elixir exunit mango couchdb
         continue-on-error: true
         timeout-minutes: 25
         shell: powershell
