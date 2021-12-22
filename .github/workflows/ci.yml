@@ -357,7 +357,7 @@ jobs:
         shell: powershell
         run: |
           cd couchdb
-          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           echo $ENV:PATH
           echo $ENV:LIB
           . ./configure.ps1 -SpiderMonkeyVersion 91
@@ -629,7 +629,7 @@ jobs:
         shell: powershell
         run: |
           cd couchdb
-          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           echo $ENV:PATH
           echo $ENV:LIB
           . ./configure.ps1 -SpiderMonkeyVersion 91
