@@ -199,7 +199,7 @@ jobs:
       shell: powershell
       run: |
         copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.pdb C:\vcpkg\installed\x64-windows\bin
-        copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.lib C:\vcpkg\installed\x64-windows\bin
+        copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.lib C:\vcpkg\installed\x64-windows\lib
         copy gecko-dev\js\src\build_OPT.OBJ\dist\bin\*.dll C:\vcpkg\installed\x64-windows\bin
         copy gecko-dev\js\src\build_OPT.OBJ\dist\include\* C:\vcpkg\installed\x64-windows\include -Recurse -ErrorAction SilentlyContinue
         
@@ -229,7 +229,7 @@ jobs:
     strategy:
       matrix:
         couch-version: ['3']
-        deps: ['msdeps1']
+        deps: ['msdeps3']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -343,6 +343,7 @@ jobs:
           sed -i -e 's@--check-formatted@@' Makefile.win
 
       - name: patch couchdb rebar for moz91
+        if: false
         run: |
           sed -i -e 's@"mozjs-91.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
           sed -i -e 's@"icuin.lib icudt.lib icuuc.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin /LIBPATH:C:/relax/vcpkg/installed/x64-windows/lib icuin.lib icudt.lib icuuc.lib"@' couchdb/src/couch/rebar.config.script
@@ -609,6 +610,7 @@ jobs:
           sed -i -e 's@{tag, "v1.2.2"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' src/ebtree/rebar.config
 
       - name: patch couchdb rebar for moz91
+        if: false
         run: |
           sed -i -e 's@SMVsn == "60"@SMVsn == "91"@' couchdb/src/couch/rebar.config.script
           sed -i -e 's@"mozjs-60.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
