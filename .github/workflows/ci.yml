@@ -186,7 +186,7 @@ jobs:
         import os
         env = os.environ.copy()
         env['PATH'] = env['ADD_PATH']+env['PATH']
-        subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
+        subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
 
     - name: make
       working-directory: gecko-dev\js\src\build_OPT.OBJ
@@ -228,8 +228,8 @@ jobs:
       JB: '-old-deps'
     strategy:
       matrix:
-        couch-version: ['3', '4']
-        deps: ['msdeps11']
+        couch-version: ['3']
+        deps: ['msdepsdebug']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -279,10 +279,10 @@ jobs:
         if: steps.getdeps.outputs.cache-hit != 'true'
         shell: powershell
         run: |
-          Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
-          Start-BitsTransfer -Source https://github.com/lostnet/couchdb/releases/download/${{matrix.deps}}/otp-24.tar.xz
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-24.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
+          #          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
 
       - name: Install FoundationDB (Windows)
         shell: pwsh
@@ -329,17 +329,18 @@ jobs:
       - name: checkout couchdb3
         if: ${{ matrix.couch-version == '3' }}
         run: |
-          git clone https://github.com/apache/couchdb
+          git clone https://github.com/lostnet/couchdb
           cd couchdb
           git checkout "feat/support-sm91-3.x-from-lostnet"
 
       - name: checkout couchdb4
         if: ${{ matrix.couch-version == '4' }}
         run: |
-          git clone https://github.com/lostnet/couchdb
+          git clone https://github.com/apache/couchdb
           cd couchdb
-          git checkout couch4win
+          git checkout main
           sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
+          sed -i -e 's@--check-formatted@@' Makefile.win
 
       - name: patch couchdb rebar for moz91
         run: |
@@ -363,13 +364,13 @@ jobs:
           make.exe -f Makefile.win
 
       - name: raw bundle of couchdb
-        if: false
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
       - name: check couchdb
-        timeout-minutes: 35
-        continue-on-error: true
+        timeout-minutes: 5
+        continue-on-error: false
         shell: powershell
         working-directory: couchdb
         env:
@@ -377,10 +378,11 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          gmake -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         working-directory: couchdb
         env:
@@ -392,6 +394,7 @@ jobs:
 
       - name: check couchdb
         timeout-minutes: 25
+        continue-on-error: true
         shell: powershell
         working-directory: couchdb
         env:
@@ -411,7 +414,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check couchdb
         timeout-minutes: 25
@@ -487,7 +490,7 @@ jobs:
       JB: ''
     strategy:
       matrix:
-        couch-version: ['3', '4']
+        couch-version: ['3']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -593,7 +596,7 @@ jobs:
       - name: checkout couchdb3
         if: ${{ matrix.couch-version == '3' }}
         run: |
-          git clone https://github.com/apache/couchdb
+          git clone https://github.com/lostnet/couchdb
           cd couchdb
           git checkout "feat/support-sm91-3.x-from-lostnet"
 
