@@ -135,7 +135,9 @@ jobs:
   mozjs:
     strategy:
       matrix:
-        mozjs-version: ['78', '91']
+        mozjs-version: ['91']
+    env:
+      LDFLAGS: "${{env.LDFLAGS}} icuin.lib icudt.lib icuuc.lib"
     runs-on: windows-latest
 
     steps:
@@ -341,12 +343,6 @@ jobs:
           git checkout main
           sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
           sed -i -e 's@--check-formatted@@' Makefile.win
-
-      - name: patch couchdb rebar for moz91
-        if: false
-        run: |
-          sed -i -e 's@"mozjs-91.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
-          sed -i -e 's@"icuin.lib icudt.lib icuuc.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin /LIBPATH:C:/relax/vcpkg/installed/x64-windows/lib icuin.lib icudt.lib icuuc.lib"@' couchdb/src/couch/rebar.config.script
 
       - name: Set up Visual Studio shell
         uses: egor-tensin/vs-shell@v2
@@ -611,14 +607,6 @@ jobs:
           sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
           sed -i -e 's@1.0.5-1@1.0.9-1@' rebar.config.script
           sed -i -e 's@{tag, "v1.2.2"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' src/ebtree/rebar.config
-
-      - name: patch couchdb rebar for moz91
-        if: false
-        run: |
-          sed -i -e 's@SMVsn == "60"@SMVsn == "91"@' couchdb/src/couch/rebar.config.script
-          sed -i -e 's@"mozjs-60.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
-          sed -i -e 's@"/DXP_WIN"@"/std:c++17 /DXP_WIN"@' couchdb/src/couch/rebar.config.script
-          sed -i -e 's@"icuin.lib icudt.lib icuuc.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin /LIBPATH:C:/relax/vcpkg/installed/x64-windows/lib icuin.lib icudt.lib icuuc.lib"@' couchdb/src/couch/rebar.config.script
 
       - name: Set up Visual Studio shell
         uses: egor-tensin/vs-shell@v2
