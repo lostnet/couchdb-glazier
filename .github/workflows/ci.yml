@@ -13,7 +13,7 @@ env:
   ADD_PATH: "C:\\mozilla-build\\bin;C:\\mozilla-build\\msys\\bin;C:\\mozilla-build\\msys\\local\\bin;C:\\vcpkg\\installed\\x64-windows\\bin;"
   AUTOCONF: "C:\\mozilla-build\\msys\\local\\bin\\autoconf-2.13"
   NATIVE_WIN32_PYTHON: "C:\\mozilla-build\\python\\python2.7.exe"
-  LIB: "C:\\vcpkg\\installed\\x64-windows\\lib;C:\\vcpkg\\installed\\x64-windows\\bin"
+  LIB: "C:\\vcpkg\\installed\\x64-windows\\lib"
   VCPKG_BIN: "C:\\vcpkg\\installed\\x64-windows\\bin"
   INCLUDE: "C:\\vcpkg\\installed\\x64-windows\\include"
   LIBPATH: "C:\\vcpkg\\installed\\x64-windows\\lib"
@@ -199,7 +199,7 @@ jobs:
       shell: powershell
       run: |
         copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.pdb C:\vcpkg\installed\x64-windows\bin
-        copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.lib C:\vcpkg\installed\x64-windows\bin
+        copy gecko-dev\js\src\build_OPT.OBJ\js\src\build\*.lib C:\vcpkg\installed\x64-windows\lib
         copy gecko-dev\js\src\build_OPT.OBJ\dist\bin\*.dll C:\vcpkg\installed\x64-windows\bin
         copy gecko-dev\js\src\build_OPT.OBJ\dist\include\* C:\vcpkg\installed\x64-windows\include -Recurse -ErrorAction SilentlyContinue
         
@@ -228,8 +228,8 @@ jobs:
       JB: '-old-deps'
     strategy:
       matrix:
-        couch-version: ['3', '4']
-        deps: ['msdeps1']
+        couch-version: ['3']
+        deps: ['msdeps3']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -343,10 +343,9 @@ jobs:
           sed -i -e 's@--check-formatted@@' Makefile.win
 
       - name: patch couchdb rebar for moz91
+        if: false
         run: |
-          sed -i -e 's@SMVsn == "60"@SMVsn == "91"@' couchdb/src/couch/rebar.config.script
-          sed -i -e 's@"mozjs-60.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
-          sed -i -e 's@"/DXP_WIN"@"/std:c++17 /DXP_WIN"@' couchdb/src/couch/rebar.config.script
+          sed -i -e 's@"mozjs-91.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
           sed -i -e 's@"icuin.lib icudt.lib icuuc.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin /LIBPATH:C:/relax/vcpkg/installed/x64-windows/lib icuin.lib icudt.lib icuuc.lib"@' couchdb/src/couch/rebar.config.script
 
       - name: Set up Visual Studio shell
@@ -358,18 +357,19 @@ jobs:
         shell: powershell
         run: |
           cd couchdb
-          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
-          echo $env:Path
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          echo $ENV:PATH
+          echo $ENV:LIB
           . ./configure.ps1 -SpiderMonkeyVersion 91
-          make.exe -f Makefile.win
+          gmake.exe -f Makefile.win
 
       - name: raw bundle of couchdb
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
-      - name: check couchdb
-        timeout-minutes: 5
+      - name: check-elixir couchdb
+        timeout-minutes: 15
         continue-on-error: false
         shell: powershell
         working-directory: couchdb
@@ -380,7 +380,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           gmake -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check-python-black couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -392,7 +392,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -d -f Makefile.win python-black | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check-erlfmt couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -404,7 +404,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -d -f Makefile.win erlfmt-check | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check eunit couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -416,7 +416,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check exunit couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -428,7 +428,7 @@ jobs:
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           make -d -f Makefile.win exunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
-      - name: check couchdb
+      - name: check mango couchdb
         timeout-minutes: 25
         continue-on-error: true
         shell: powershell
@@ -448,6 +448,8 @@ jobs:
           echo $env:Path
           $env:CC="clang-cl.exe"
           echo $env:CC
+          $ENV:LIB=$ENV:LIB
+          echo $env:LIB
           make.exe -f Makefile.win release
 
       - name: bundle
@@ -490,7 +492,7 @@ jobs:
       JB: ''
     strategy:
       matrix:
-        couch-version: ['3', '4']
+        couch-version: ['3']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -611,6 +613,7 @@ jobs:
           sed -i -e 's@{tag, "v1.2.2"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' src/ebtree/rebar.config
 
       - name: patch couchdb rebar for moz91
+        if: false
         run: |
           sed -i -e 's@SMVsn == "60"@SMVsn == "91"@' couchdb/src/couch/rebar.config.script
           sed -i -e 's@"mozjs-60.lib"@"/LIBPATH:C:/relax/vcpkg/installed/x64-windows/bin mozjs-91.lib"@' couchdb/src/couch/rebar.config.script
@@ -626,16 +629,17 @@ jobs:
         shell: powershell
         run: |
           cd couchdb
-          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH"
-          echo $env:Path
+          $ENV:PATH="c:\relax\llvm\bin;c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
+          echo $ENV:PATH
+          echo $ENV:LIB
           . ./configure.ps1 -SpiderMonkeyVersion 91
-          make.exe -f Makefile.win
+          gmake.exe -f Makefile.win
 
       - name: raw bundle of couchdb
         run: |
           tar cvJf couchdb${{matrix.couch-version}}${{env.JB}}.tar.xz couchdb
 
-      - name: check couchdb
+      - name: check eunit elixir exunit mango couchdb
         continue-on-error: true
         timeout-minutes: 25
         shell: powershell
