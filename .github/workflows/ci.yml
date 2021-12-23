@@ -371,7 +371,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          gmake -f Makefile.win elixir-suite | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          gmake -f Makefile.win elixir-suite | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check-python-black couchdb
         timeout-minutes: 25
@@ -383,7 +383,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win python-black | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -d -f Makefile.win python-black | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check-erlfmt couchdb
         timeout-minutes: 25
@@ -395,7 +395,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win erlfmt-check | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -d -f Makefile.win erlfmt-check | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check eunit couchdb
         timeout-minutes: 25
@@ -407,7 +407,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -f Makefile.win eunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -f Makefile.win eunit | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check exunit couchdb
         timeout-minutes: 25
@@ -419,7 +419,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win exunit | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -d -f Makefile.win exunit | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: check mango couchdb
         timeout-minutes: 25
@@ -431,7 +431,7 @@ jobs:
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
-          make -d -f Makefile.win mango-test | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -d -f Makefile.win mango-test | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: build couchdb release
         shell: powershell
@@ -636,7 +636,7 @@ jobs:
           cd couchdb
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
           $env:CC="clang-cl.exe"
-          make -d -f Makefile.win eunit elixir-suite exunit mango-test | Tee-Object -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
+          make -d -f Makefile.win eunit elixir-suite exunit mango-test | Tee-Object -Append -FilePath "check_results${{matrix.couch-version}}${{env.JB}}.txt"
 
       - name: build couchdb release
         shell: powershell
