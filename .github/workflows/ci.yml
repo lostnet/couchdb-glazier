@@ -228,8 +228,8 @@ jobs:
       JB: '-old-deps'
     strategy:
       matrix:
-        couch-version: ['3']
-        deps: ['msdeps3']
+        couch-version: ['3','4']
+        deps: ['msdeps6']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -272,7 +272,7 @@ jobs:
             otp-24.tar.xz
             Precompiled.zip
             foundationdb-${{env.FDB_VERSION}}-x64.msi
-          key: allwindeps-${{matrix.deps}}-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
+          key: allwindeps-${{matrix.deps}}-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}-${{ runner.os }}
 
       - name: download artifacts
         if: steps.getdeps.outputs.cache-hit != 'true'
@@ -281,7 +281,7 @@ jobs:
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-24.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          #          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
+          Start-BitsTransfer -Source https://github.com/apple/foundationdb/releases/download/$env:FDB_VERSION/foundationdb-$env:FDB_VERSION-x64.msi
 
       - name: Install FoundationDB (Windows)
         shell: pwsh
@@ -335,9 +335,10 @@ jobs:
       - name: checkout couchdb4
         if: ${{ matrix.couch-version == '4' }}
         run: |
-          git clone https://github.com/apache/couchdb
+          git clone https://github.com/lostnet/couchdb
           cd couchdb
           git checkout main
+          git checkout "feat/support-sm91-4.x-from-lostnet"
           sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
           sed -i -e 's@--check-formatted@@' Makefile.win
 
@@ -485,7 +486,7 @@ jobs:
       JB: ''
     strategy:
       matrix:
-        couch-version: ['3']
+        couch-version: ['3', '4']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -542,14 +543,14 @@ jobs:
           path: |
             Precompiled.zip
             foundationdb-${{env.FDB_VERSION}}-x64.msi
-          key: winotherbins-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}
+          key: winotherbins-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}-${{ runner.os }}
 
       - name: download Elixir
         if: steps.getelixir.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Start-BitsTransfer -Source https://www.foundationdb.org/downloads/$env:FDB_VERSION/windows/installers/foundationdb-$env:FDB_VERSION-x64.msi
+          Start-BitsTransfer -Source https://github.com/apple/foundationdb/releases/download/$env:FDB_VERSION/foundationdb-$env:FDB_VERSION-x64.msi
 
       - name: Install FoundationDB (Windows)
         shell: pwsh
@@ -602,12 +603,11 @@ jobs:
       - name: checkout couchdb4
         if: ${{ matrix.couch-version == '4' }}
         run: |
-          git clone https://github.com/apache/couchdb
+          git clone https://github.com/lostnet/couchdb
           cd couchdb
-          git checkout main
+          git checkout "feat/support-sm91-4.x-from-lostnet"
           sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
-          sed -i -e 's@1.0.5-1@1.0.9-1@' rebar.config.script
-          sed -i -e 's@{tag, "v1.2.2"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' src/ebtree/rebar.config
+          sed -i -e 's@--check-formatted@@' Makefile.win
 
       - name: Set up Visual Studio shell
         uses: egor-tensin/vs-shell@v2
