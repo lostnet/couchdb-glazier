@@ -154,6 +154,16 @@ jobs:
         Start-BitsTransfer -Source https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe -Destination ./MozillaBuildSetup.exe
         .\MozillaBuildSetup.exe /S | Out-Null
 
+    - name: git-no-windows-crlf
+      shell: bash
+      run: git config --system core.autocrlf false
+
+    - name: checkout mozjs
+      run: |
+        git clone https://github.com/mozilla/gecko-dev
+        cd gecko-dev
+        git checkout esr${{ matrix.mozjs-version }}
+
     - name: moz checkout
       uses: actions/checkout@v2
       with:
