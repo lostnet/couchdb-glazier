@@ -135,7 +135,7 @@ jobs:
   mozjs:
     strategy:
       matrix:
-        mozjs-version: ['91']
+        mozjs-version: ['68', '91']
     runs-on: windows-latest
 
     steps:
@@ -258,9 +258,9 @@ jobs:
 
       - name: checkout couchdb-glazier
         run: |
-          git clone https://github.com/apache/couchdb-glazier
+          git clone https://github.com/lostnet/couchdb-glazier
           cd couchdb-glazier
-          git checkout main
+          git checkout net4
           sed -i -e 's@2017.*14.16.27012@2019\\Enterprise\\VC\\Redist\\MSVC\\14.16.27012@' installer/couchdb.wxs.in
 
       - name: Cache of deps
@@ -515,9 +515,9 @@ jobs:
 
       - name: checkout couchdb-glazier
         run: |
-          git clone https://github.com/apache/couchdb-glazier
+          git clone https://github.com/lostnet/couchdb-glazier
           cd couchdb-glazier
-          git checkout main
+          git checkout net4
           sed -i -e 's@2017.*14.16.27012@2019\\Enterprise\\VC\\Redist\\MSVC\\14.16.27012@' installer/couchdb.wxs.in
 
           
