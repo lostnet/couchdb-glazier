@@ -134,7 +134,7 @@ jobs:
 
   mozjs:
     strategy:
-      fail-fast:false
+      fail-fast: false
       matrix:
         mozjs-version: ['68', '91']
     runs-on: windows-latest
