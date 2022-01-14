@@ -134,6 +134,7 @@ jobs:
 
   mozjs:
     strategy:
+      fail-fast:false
       matrix:
         mozjs-version: ['68', '91']
     runs-on: windows-latest
@@ -176,7 +177,23 @@ jobs:
 
     - name: conf mozjs
       working-directory: gecko-dev\js\src\build_OPT.OBJ
+      if: ${{matrix.mozjs-version == "91" }}
       shell: python
+      env:
+        SRCDIR: ${{ github.workspace}}\gecko-dev\js\src
+        OLD_CONFIGURE: ${{ github.workspace }}\gecko-dev\js\src\old-configure
+        TOPSRCDIR: ${{ github.workspace }}\gecko-dev
+      run: |
+        import subprocess
+        import os
+        env = os.environ.copy()
+        env['PATH'] = env['ADD_PATH']+env['PATH']
+        subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
+
+    - name: conf mozjs
+      working-directory: gecko-dev\js\src\build_OPT.OBJ
+      if: ${{matrix.mozjs-version == "68" }}
+      shell: python2
       env:
         SRCDIR: ${{ github.workspace}}\gecko-dev\js\src
         OLD_CONFIGURE: ${{ github.workspace }}\gecko-dev\js\src\old-configure
