@@ -136,7 +136,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mozjs-version: ['68', '91']
+        mozjs-version: ['60', '91']
     runs-on: windows-latest
 
     steps:
@@ -202,7 +202,7 @@ jobs:
 
     - name: conf mozjs
       working-directory: gecko-dev\js\src\build_OPT.OBJ
-      if: ${{matrix.mozjs-version == '68' }}
+      if: ${{matrix.mozjs-version == '60' }}
       shell: python
       env:
         SRCDIR: ${{ github.workspace}}\gecko-dev\js\src
