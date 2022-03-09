@@ -25,7 +25,7 @@ env:
 jobs:
   
   erlang:
-    runs-on: windows-latest
+    runs-on: windows-2019
     strategy:
       matrix:
         otp-version: ['24']
@@ -137,7 +137,7 @@ jobs:
       fail-fast: false
       matrix:
         mozjs-version: ['60', '91']
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -250,7 +250,7 @@ jobs:
 
 
   coucholddeps:
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       JB: '-old-deps'
     strategy:
@@ -507,7 +507,7 @@ jobs:
 
   couchdb:
     needs: [ mozjs, erlang ]
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       JB: ''
     strategy:
