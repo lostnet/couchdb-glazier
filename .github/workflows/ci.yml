@@ -138,7 +138,7 @@ jobs:
       fail-fast: false
       matrix:
         mozjs-version: ['60', '91']
-    runs-on: windows-2019
+    runs-on: windows-2016
 
     steps:
     - uses: actions/checkout@v2
@@ -213,15 +213,15 @@ jobs:
         import subprocess
         import os
         env = os.environ.copy()
-        env['PATH'] = env['NATIVE_WIN32_PYDIR']+';c:/relax/llvm/bin;'+env['ADD_PATH']+env['PATH']
-        subprocess.run([env['NATIVE_WIN32_PYTHON'], "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows", "--with-libclang-path=\"C:/relax/llvm/bin\"", "--with-clang-path=\"C:/relax/LLVM/bin/clang.exe\""], env=env)
+        env['PATH'] = env['NATIVE_WIN32_PYDIR']+';'+env['ADD_PATH']+env['PATH']
+        subprocess.run([env['NATIVE_WIN32_PYTHON'], "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows", "--with-visual-studio-version=2017"], env=env)
 
     - name: make
       working-directory: gecko-dev\js\src\build_OPT.OBJ
       if: ${{matrix.mozjs-version == '60' }}
       shell: powershell
       run: |
-        $env:Path = 'c:/relax/llvm/bin;'+ $env:ADD_PATH + $env:Path
+        $env:Path = $env:ADD_PATH + $env:Path
         C:\mozilla-build\bin\mozmake.exe
 
     - name: make
