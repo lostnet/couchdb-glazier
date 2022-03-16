@@ -268,12 +268,26 @@ jobs:
         shell: bash
         run: git config --system core.autocrlf false
 
+      - name: Install deps on windows
+        shell: powershell
+        env:
+          GZ: ${{ secrets.GLAZIERGIST }}
+        run: |
+          Start-BitsTransfer -Source "$env:GZ" -Destination ./glazier.zip
+          mkdir glapat
+          cd clapat
+          unzip ../glazer.zip
+
       - name: checkout couchdb-glazier
         run: |
           git clone https://github.com/lostnet/couchdb-glazier
           cd couchdb-glazier
           git checkout net4
           sed -i -e 's@2017.*14.16.27012@2019\\Enterprise\\VC\\Redist\\MSVC\\14.16.27012@' installer/couchdb.wxs.in
+          for i in ../glapat/*/*.patch
+            do
+              patch < $i
+            done
 
       - name: Cache of deps
         id: getdeps
