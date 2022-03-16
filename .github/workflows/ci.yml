@@ -276,7 +276,7 @@ jobs:
           Start-BitsTransfer -Source "$env:GZ" -Destination ./glazier.zip
           mkdir glapat
           cd glapat
-          unzip ../glazer.zip
+          unzip ../glazier.zip
 
       - name: checkout couchdb-glazier
         run: |
