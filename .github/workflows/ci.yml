@@ -137,8 +137,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mozjs-version: ['60', '91']
-    runs-on: windows-2016
+        mozjs-version: ['91']
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -188,7 +188,6 @@ jobs:
 
     - name: conf mozjs
       working-directory: gecko-dev\js\src\build_OPT.OBJ
-      if: ${{matrix.mozjs-version == '91' }}
       shell: python
       env:
         SRCDIR: ${{ github.workspace}}\gecko-dev\js\src
@@ -201,32 +200,7 @@ jobs:
         env['PATH'] = env['ADD_PATH']+env['PATH']
         subprocess.run(["python.EXE", "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jit", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows"], env=env)
 
-    - name: conf mozjs
-      working-directory: gecko-dev\js\src\build_OPT.OBJ
-      if: ${{matrix.mozjs-version == '60' }}
-      shell: python
-      env:
-        SRCDIR: ${{ github.workspace}}\gecko-dev\js\src
-        OLD_CONFIGURE: ${{ github.workspace }}\gecko-dev\js\src\old-configure
-        TOPSRCDIR: ${{ github.workspace }}\gecko-dev
-      run: |
-        import subprocess
-        import os
-        env = os.environ.copy()
-        env['LINKER'] = 'lld'
-        env['PATH'] = env['NATIVE_WIN32_PYDIR']+';'+env['ADD_PATH']+env['PATH']
-        subprocess.run([env['NATIVE_WIN32_PYTHON'], "../../../configure.py", "--enable-project=js", "--enable-shared-js", "--disable-ctypes", "--disable-jemalloc", "--enable-optimize", "--enable-hardening", "--with-intl-api", "--build-backends=RecursiveMake", "--with-system-icu", "--disable-debug", "--disable-logrefcnt", "--enable-gczeal", "--target=x86_64-pc-mingw32", "--host=x86_64-pc-mingw32", "--prefix=/c/vcpkg/installed/x64-windows", "--with-visual-studio-version=2017"], env=env)
-
     - name: make
-      working-directory: gecko-dev\js\src\build_OPT.OBJ
-      if: ${{matrix.mozjs-version == '60' }}
-      shell: powershell
-      run: |
-        $env:Path = $env:ADD_PATH + $env:Path
-        C:\mozilla-build\bin\mozmake.exe
-
-    - name: make
-      if: ${{matrix.mozjs-version == '91' }}
       working-directory: gecko-dev\js\src\build_OPT.OBJ
       shell: powershell
       run: |
@@ -266,7 +240,7 @@ jobs:
       JB: '-old-deps'
     strategy:
       matrix:
-        couch-version: ['3','4']
+        couch-version: ['3']
         deps: ['msdeps6']
     defaults:
       run:
@@ -309,7 +283,6 @@ jobs:
             vcpkgmozjs91.tar.xz
             otp-24.tar.xz
             Precompiled.zip
-            foundationdb-${{env.FDB_VERSION}}-x64.msi
           key: allwindeps-${{matrix.deps}}-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}-${{ runner.os }}
 
       - name: download artifacts
@@ -319,15 +292,7 @@ jobs:
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-24.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Start-BitsTransfer -Source https://github.com/apple/foundationdb/releases/download/$env:FDB_VERSION/foundationdb-$env:FDB_VERSION-x64.msi
 
-      - name: Install FoundationDB (Windows)
-        shell: pwsh
-        if: ${{ matrix.couch-version == '4' }}
-        run: |
-          Set-PSDebug -Trace 1
-          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
-          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: setup icu and mozjs again
         run: |
@@ -368,16 +333,8 @@ jobs:
         run: |
           git clone https://github.com/lostnet/couchdb
           cd couchdb
-          git checkout "feat/support-sm91-3.x-from-lostnet"
+          git checkout "3.x"
 
-      - name: checkout couchdb4
-        if: ${{ matrix.couch-version == '4' }}
-        run: |
-          git clone https://github.com/apache/couchdb
-          cd couchdb
-          git checkout main
-          sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
-          sed -i -e 's@--check-formatted@@' Makefile.win
 
       - name: Set up Visual Studio shell
         uses: egor-tensin/vs-shell@v2
@@ -405,7 +362,6 @@ jobs:
         shell: powershell
         working-directory: couchdb
         env:
-          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
@@ -417,7 +373,6 @@ jobs:
         shell: powershell
         working-directory: couchdb
         env:
-          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
@@ -429,7 +384,6 @@ jobs:
         shell: powershell
         working-directory: couchdb
         env:
-          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
@@ -441,7 +395,6 @@ jobs:
         shell: powershell
         working-directory: couchdb
         env:
-          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
@@ -453,7 +406,6 @@ jobs:
         shell: powershell
         working-directory: couchdb
         env:
-          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
@@ -465,7 +417,6 @@ jobs:
         shell: powershell
         working-directory: couchdb
         env:
-          ERL_ZFLAGS: "-erlfdb test_cluster_file <<\\\"C:/ProgramData/foundationdb/fdb.cluster\\\">>"
           CC: "clang-cl.exe"
         run: |
           $ENV:PATH="c:\relax\erl\bin;$ENV:PATH;$ENV:VCPKG_BIN"
@@ -523,7 +474,7 @@ jobs:
       JB: ''
     strategy:
       matrix:
-        couch-version: ['3', '4']
+        couch-version: ['3']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -579,7 +530,6 @@ jobs:
         with:
           path: |
             Precompiled.zip
-            foundationdb-${{env.FDB_VERSION}}-x64.msi
           key: winotherbins-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}-${{ runner.os }}
 
       - name: download Elixir
@@ -587,15 +537,6 @@ jobs:
         shell: powershell
         run: |
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
-          Start-BitsTransfer -Source https://github.com/apple/foundationdb/releases/download/$env:FDB_VERSION/foundationdb-$env:FDB_VERSION-x64.msi
-
-      - name: Install FoundationDB (Windows)
-        shell: pwsh
-        if: ${{ matrix.couch-version == '4' }}
-        run: |
-          Set-PSDebug -Trace 1
-          msiexec /i foundationdb-$env:FDB_VERSION-x64.msi /passive
-          echo "c:/Program Files/foundationdb/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: setup icu and mozjs again
         run: |
@@ -635,16 +576,7 @@ jobs:
         run: |
           git clone https://github.com/lostnet/couchdb
           cd couchdb
-          git checkout "feat/support-sm91-3.x-from-lostnet"
-
-      - name: checkout couchdb4
-        if: ${{ matrix.couch-version == '4' }}
-        run: |
-          git clone https://github.com/apache/couchdb
-          cd couchdb
-          git checkout main
-          sed -i -e 's@{tag, "v1.3.4"}@"74a31ce5a14be60b5cd2062da771deff71a06599"@' rebar.config.script
-          sed -i -e 's@--check-formatted@@' Makefile.win
+          git checkout "3.x"
 
       - name: Set up Visual Studio shell
         uses: egor-tensin/vs-shell@v2
