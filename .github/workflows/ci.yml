@@ -286,7 +286,7 @@ jobs:
           sed -i -e 's@2017.*14.16.27012@2019\\Enterprise\\VC\\Redist\\MSVC\\14.16.27012@' installer/couchdb.wxs.in
           for i in ../glapat/*/*.patch
             do
-              patch < $i
+              patch -p1 < $i
             done
 
       - name: Cache of deps
