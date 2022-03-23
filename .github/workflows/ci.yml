@@ -28,7 +28,7 @@ jobs:
     runs-on: windows-2019
     strategy:
       matrix:
-        otp-version: ['24']
+        otp-version: ['23']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -63,7 +63,8 @@ jobs:
           export ERLC_USE_SERVER=true
           eval `./otp_build env_win32 x64`
           ./otp_build configure --without-javac --without-debugger --without-wx --without-ic --without-odbc --without-et --without-cosEvent --without-cosEventDomain --without-cosFileTransfer --without-cosNotification --without-cosProperty --without-cosTime --without-cosTransactions --without-orber --without-observer --without-cdv
-          if cat erts/CONF_INFO || cat lib/*/CONF_INFO || cat lib/*/SKIP || cat lib/SKIP-APPLICATIONS; then exit 1; fi
+          if cat erts/CONF_INFO || cat lib/*/SKIP || cat lib/SKIP-APPLICATIONS; then exit 1; fi
+          ls lib/*/CONF_INFO
           ./otp_build boot -a
           ./otp_build release -a
           ./otp_build installer_win32
