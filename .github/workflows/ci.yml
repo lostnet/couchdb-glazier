@@ -3,7 +3,7 @@ name: CI Glazier
 on: [workflow_dispatch,push]
 
 env:
-  WXWIDGETS_VERSION: 3.1.4
+  WXWIDGETS_VERSION: 2.8.12
   RUST_VERSION: 1.56.1
   ELIXIR_VERSION: 1.12.3
   FDB_VERSION: 6.2.30
@@ -29,7 +29,7 @@ jobs:
     runs-on: windows-2019
     strategy:
       matrix:
-        otp-version: ['23','24']
+        otp-version: ['23']
     defaults:
       run:
         shell: wsl-bash {0}
