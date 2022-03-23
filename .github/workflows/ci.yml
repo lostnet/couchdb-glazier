@@ -62,7 +62,7 @@ jobs:
           export MAKEFLAGS=-j4
           export ERLC_USE_SERVER=true
           eval `./otp_build env_win32 x64`
-          ./otp_build configure --without-wx
+          ./otp_build configure --without-javac --without-debugger --without-wx --without-ic --without-odbc --without-et --without-cosEvent --without-cosEventDomain --without-cosFileTransfer --without-cosNotification --without-cosProperty --without-cosTime --without-cosTransactions --without-orber --without-observer
           if cat erts/CONF_INFO || cat lib/*/CONF_INFO || cat lib/*/SKIP || cat lib/SKIP-APPLICATIONS; then exit 1; fi
           ./otp_build boot -a
           ./otp_build release -a
