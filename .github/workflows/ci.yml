@@ -433,12 +433,6 @@ jobs:
             apache-couchdb${{matrix.couch-version}}${{env.JB}}.msi
             couchdb/check_results${{matrix.couch-version}}${{env.JB}}.txt
 
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-
   couchdb:
     needs: [ mozjs, erlang ]
     runs-on: windows-2019
