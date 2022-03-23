@@ -199,7 +199,7 @@ jobs:
     strategy:
       matrix:
         couch-version: ['3']
-        deps: ['msdeps6']
+        deps: ['ohgist']
     defaults:
       run:
         shell: wsl-bash {0}
@@ -253,16 +253,16 @@ jobs:
         with:
           path: |
             vcpkgmozjs91.tar.xz
-            otp-24.tar.xz
+            otp-23.tar.xz
             Precompiled.zip
-          key: allwindeps-${{matrix.deps}}-${{env.FDB_VERSION}}-${{env.ELIXIR_VERSION}}-${{ runner.os }}
+          key: allwindeps-${{matrix.deps}}-23-${{env.ELIXIR_VERSION}}-${{ runner.os }}
 
       - name: download artifacts
         if: steps.getdeps.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/vcpkgmozjs91.tar.xz
-          Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-24.tar.xz
+          Start-BitsTransfer -Source https://github.com/lostnet/couchdb-glazier/releases/download/${{matrix.deps}}/otp-23.tar.xz
           Start-BitsTransfer -Source https://github.com/elixir-lang/elixir/releases/download/v$env:ELIXIR_VERSION/Precompiled.zip
 
 
@@ -276,7 +276,7 @@ jobs:
 
       - name: unarchive erlang
         run: |
-          tar xvJf otp-24.tar.xz
+          tar xvJf otp-23.tar.xz
 
       - name: setup erlang
         run: |
@@ -520,7 +520,7 @@ jobs:
 
       - name: unarchive erlang
         run: |
-          tar xvJf otp-24.tar.xz
+          tar xvJf otp-23.tar.xz
 
       - name: setup erlang
         run: |
