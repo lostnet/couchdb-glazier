@@ -236,6 +236,16 @@ jobs:
           cd glapat
           unzip ../glazier.zip
 
+      - name: Install deps on windows
+        shell: powershell
+        env:
+          CG: ${{ secrets.COUCHGIST }}
+        run: |
+          Start-BitsTransfer -Source "$env:CG" -Destination ./couchgist.zip
+          mkdir coupat
+          cd coupat
+          unzip ../couchgist.zip
+
       - name: checkout couchdb-glazier
         run: |
           git clone https://github.com/lostnet/couchdb-glazier
@@ -306,6 +316,10 @@ jobs:
           git clone https://github.com/apache/couchdb
           cd couchdb
           git checkout "3.x"
+          for i in ../coupat/*/*.patch
+            do
+              patch -p1 < $i
+            done
 
 
       - name: Set up Visual Studio shell
