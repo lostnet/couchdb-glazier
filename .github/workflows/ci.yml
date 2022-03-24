@@ -330,7 +330,7 @@ jobs:
 
       - name: check-elixir couchdb
         timeout-minutes: 15
-        continue-on-error: false
+        continue-on-error: true
         shell: powershell
         working-directory: couchdb
         env:
